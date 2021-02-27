@@ -1,5 +1,5 @@
 ---
-# handlers file for paultaiton.browser
+# handlers file for paultaiton.discordbot
 - name: restart_discordbot
   become: yes
   systemd:
