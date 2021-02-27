@@ -1,0 +1,10 @@
+---
+# handlers file for paultaiton.browser
+- name: restart_discordbot
+  become: yes
+  systemd:
+    daemon_reload: yes
+    enabled: yes
+    name: discordbot
+    state: restarted
+

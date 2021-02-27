@@ -1,0 +1,79 @@
+---
+# tasks file for paultaiton.discordbot
+
+- name: create discordbot user
+  user:
+    name: discordbot
+    comment: "Discord Bot"
+    create_home: yes
+    home: "{{ discordbot_home | default(omit) }}"
+    state: present
+  register: discordbot_user
+
+- name: fix stupid home permissions
+  file:
+    path: "{{ discordbot_user.home }}"
+    state: "directory"
+    mode: "700"
+
+- name: clone repo
+  become: yes
+  become_user: discordbot
+  git:
+    repo: "https://github.com/paultaiton/discord-bot.git"
+    dest: "{{ discordbot_user.home }}/discord-bot"
+  register: repo_clone
+  notify: restart_discordbot
+  
+- name: python project pip requirements
+  pip:
+    requirements: "{{ discordbot_user.home }}/discord-bot/requirements.txt"
+    virtualenv: "{{ discordbot_user.home | default(omit) }}/discord-bot/.venv"
+    virtualenv_command: "/usr/bin/python3 -m venv "
+  when: repo_clone.changed
+
+- name: simlink git repo into venv
+  file:
+    src: "{{ discordbot_user.home | default(omit) }}/discord-bot/discord-bot"
+    path: "{{ discordbot_user.home | default(omit) }}/discord-bot/.venv/lib/python3.7/site-packages/discord-bot"
+    state: "link"
+
+- name: fix stupid home permissions
+  file:
+    path: "{{ discordbot_user.home }}/.aws"
+    state: "directory"
+    mode: "700"
+    owner: discordbot
+    group: discordbot
+
+- name: aws credentials
+  template:
+    src: aws.credentials.j2
+    dest: "{{ discordbot_user.home }}/.aws/credentials"
+    owner: discordbot
+    group: discordbot
+  notify: restart_discordbot
+
+- name: aws config
+  template:
+    src: aws.config.j2
+    dest: "{{ discordbot_user.home }}/.aws/config"
+    owner: discordbot
+    group: discordbot
+  notify: restart_discordbot
+
+- name: Systemd Service File
+  template:
+    src: discordbot.service.j2
+    dest: /etc/systemd/system/discordbot.service
+    owner: root
+    group: root
+  notify: restart_discordbot
+
+- name: enable and start discord-bot systemd
+  systemd:
+    daemon_reload: yes
+    enabled: yes
+    name: discordbot
+    state: started
+

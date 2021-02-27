@@ -1,0 +1,13 @@
+[Unit]
+Description=discordbot
+
+[Service]
+ExecStart=/home/discordbot/discord-bot/.venv/bin/python -m discord-bot -t {{ discordbot_token }}
+User=discordbot
+Group=discordbot
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
+
